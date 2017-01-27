@@ -31,12 +31,60 @@ def read_cifar(filenames, cifar_classnum):
     return images_res, labels_res
 
 
+def augment_image(image, pad):
+    """Perform zero padding, randomly crop image to original size,
+    maybe mirror horizontally"""
+    init_shape = image.shape
+    new_shape = [init_shape[0] + pad * 2,
+                 init_shape[1] + pad * 2,
+                 init_shape[2]]
+    zeros_padded = np.zeros(new_shape)
+    zeros_padded[pad:init_shape[0] + pad, pad:init_shape[1] + pad, :] = image
+    # randomly crop to original size
+    init_x = np.random.randint(0, pad * 2)
+    init_y = np.random.randint(0, pad * 2)
+    cropped = zeros_padded[
+        init_x: init_x + init_shape[0],
+        init_y: init_y + init_shape[1],
+        init_shape[2]]
+    flip = np.random.randint(0, 1)
+    if flip:
+        cropped = cropped[:, ::-1, :]
+    return cropped
+
+
+def augment_all_images(initial_images, pad):
+    new_images = np.zeros(initial_images.shape)
+    for i in range(initial_images.shape[0]):
+        new_images[i] = augment_image(initial_images[i], pad=4)
+    return new_images
+
+
+def normalize_image(image):
+    new_image = np.zeros(image.shape)
+    for chanel in range(3):
+        mean = np.mean(image[:, :, chanel])
+        std = np.std(image[:, :, chanel])
+        new_image[:, :, chanel] = (image[:, :, chanel] - mean) / std
+    return new_image
+
+
+def normalize_all_images(initial_images):
+    new_images = np.zeros(initial_images.shape)
+    for i in range(initial_images.shape[0]):
+        new_images[i] = normalize_image(initial_images[i])
+    return new_images
+
+
 class CifarDataSet(DataSet):
-    def __init__(self, images, labels, n_classes, shuffle):
+    def __init__(self, images, labels, n_classes, shuffle, normalize,
+                 augmentation=False):
         self.images = images
         self.n_classes = n_classes
         self.labels = labels
         self.shuffle = shuffle
+        self.augmentation = augmentation
+        self.normalize = normalize
         self.start_new_epoch()
 
     def start_new_epoch(self):
@@ -45,8 +93,16 @@ class CifarDataSet(DataSet):
         # perform shuffling if required
         if self.shuffle:
             rand_indexes = np.random.permutation(self.images.shape[0])
-            self.images = self.images[rand_indexes]
-            self.labels = self.labels[rand_indexes]
+            self.epoch_images = self.images[rand_indexes]
+            self.epoch_labels = self.labels[rand_indexes]
+        else:
+            self.epoch_images = self.images
+            self.epoch_labels = self.labels
+        if self.augmentation:
+            self.epoch_images = augment_all_images(self.epoch_images, pad=4)
+        if self.normalize:
+            self.epoch_images = normalize_all_images(self.epoch_images)
+        import ipdb; ipdb.set_trace()
 
     @property
     def num_examples(self):
@@ -56,8 +112,8 @@ class CifarDataSet(DataSet):
         start = self._batch_counter * batch_size
         end = (self._batch_counter + 1) * batch_size
         self._batch_counter += 1
-        images_slice = self.images[start: end]
-        labels_slice = self.labels[start: end]
+        images_slice = self.epoch_images[start: end]
+        labels_slice = self.epoch_labels[start: end]
         if images_slice.shape[0] != batch_size:
             self.start_new_epoch()
             return self.next_batch(batch_size)
@@ -106,33 +162,34 @@ class CifarDataProvider(DataProvider):
                 tmp_labels[range(labels.shape[0]), labels] = labels
                 labels = tmp_labels
             # augment the data
-            if data_augmentation:
-                raise NotImplementedError
-            # normalize data
-            if normalize:
-                # normalize per channel
-                for channel in range(3):
-                    images[:, :, :, channel] = (images[:, :, :, channel] - np.mean(images[:, :, :, channel])) / np.std(images[:, :, :, channel])
+            if data_augmentation and dataset_name != 'test':
+                augmentation = True
             else:
-                images = images / 255
-            if validation_split and dataset_name == 'train':
+                augmentation = False
+            if validation_split and dataset_name != 'test':
                 split_idx = int(images.shape[0] * (1 - validation_split))
                 train_images = images[:split_idx]
                 train_labels = labels[:split_idx]
                 train_dataset = CifarDataSet(
                     images=train_images, labels=train_labels,
-                    n_classes=cifar_class, shuffle=shuffle)
+                    n_classes=cifar_class, shuffle=shuffle,
+                    normalize=normalize,
+                    augmentation=augmentation)
                 setattr(self, 'train', train_dataset)
                 valid_images = images[split_idx:]
                 valid_labels = labels[split_idx:]
                 valid_dataset = CifarDataSet(
                     images=valid_images, labels=valid_labels,
-                    n_classes=cifar_class, shuffle=shuffle)
+                    n_classes=cifar_class, shuffle=shuffle,
+                    normalize=normalize,
+                    augmentation=augmentation)
                 setattr(self, 'validation', valid_dataset)
             else:
                 dataset = CifarDataSet(
                     images=images, labels=labels,
-                    n_classes=cifar_class, shuffle=shuffle)
+                    n_classes=cifar_class, shuffle=shuffle,
+                    normalize=normalize,
+                    augmentation=augmentation)
                 setattr(self, dataset_name, dataset)
 
     @property

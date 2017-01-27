@@ -5,7 +5,7 @@ Already done
 ------------
 
 Default DenseNet(without bottleneck layers) `Densely Connected Convolutional Networks <https://arxiv.org/abs/1608.06993>`__ was implemented in TensorFlow.
-Now it can be run with Cifar10/Cifar100 datasets with various numbers of layers/blocks, so you can check any architecture you want and validate results provided in the paper.
+Now it can be run with Cifar10/Cifar100 datasets(with and without augmentation) with various numbers of layers/blocks, so you can check any architecture you want and validate results provided in the paper.
 There are also many `other implementations <https://github.com/liuzhuang13/DenseNet>`__ - they may be useful also.
 
 Citation:
@@ -23,7 +23,6 @@ What should be done
 -------------------
 In future I hope made such improvements:
 
-- Add data augmentation for Cifar10/Cifar100 datasets
 - Provide data provider for SVHN dataset
 - Add bottleneck layers, so implement DenseNet-BC
 - Provide data provider for ImageNet
