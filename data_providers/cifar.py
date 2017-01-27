@@ -22,8 +22,6 @@ def read_cifar(filenames, cifar_classnum):
             images_and_labels = pickle.load(f, encoding='bytes')
         images = images_and_labels[b'data']
         images = images.reshape(-1, 3, 32, 32).swapaxes(1, 3).swapaxes(1, 2)
-        # import ipdb; ipdb.set_trace()
-        # images = np.transpose(images, [0, 2, 3, 1])
         images_res.append(images)
         labels_res.append(images_and_labels[labels_key])
     images_res = np.vstack(images_res)
@@ -102,7 +100,6 @@ class CifarDataSet(DataSet):
             self.epoch_images = augment_all_images(self.epoch_images, pad=4)
         if self.normalize:
             self.epoch_images = normalize_all_images(self.epoch_images)
-        import ipdb; ipdb.set_trace()
 
     @property
     def num_examples(self):
