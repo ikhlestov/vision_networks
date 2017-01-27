@@ -1,13 +1,11 @@
-Readme
-======
-
-Inside this repo I will store models related to machine learning images handling. Some implementations, ideas, etc.
+DenseNet with TensorFlow
+========================
 
 Already done
 ------------
 
-Dense net model from paper `Densely Connected Convolutional Networks <https://arxiv.org/abs/1608.06993>`__ was implemented.
-Now it can be run with Cifar10/Cifar100 datasets with various numbers of layers/blocks, so you can run/check any architecture you want and validate results provided in the paper.
+Default DenseNet(without bottleneck layers) `Densely Connected Convolutional Networks <https://arxiv.org/abs/1608.06993>`__ was implemented in TensorFlow.
+Now it can be run with Cifar10/Cifar100 datasets with various numbers of layers/blocks, so you can check any architecture you want and validate results provided in the paper.
 There are also many `other implementations <https://github.com/liuzhuang13/DenseNet>`__ - they may be useful also.
 
 Citation:
