@@ -1,5 +1,6 @@
 import os
 import pickle
+import random
 
 import numpy as np
 
@@ -23,8 +24,8 @@ def augment_image(image, pad):
     cropped = zeros_padded[
         init_x: init_x + init_shape[0],
         init_y: init_y + init_shape[1],
-        init_shape[2]]
-    flip = np.random.randint(0, 1)
+        :]
+    flip = random.getrandbits(1)
     if flip:
         cropped = cropped[:, ::-1, :]
     return cropped
