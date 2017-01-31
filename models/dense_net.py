@@ -5,14 +5,14 @@ from datetime import timedelta
 
 import numpy as np
 import tensorflow as tf
-import tflearn
 
 
 class DenseNet:
     def __init__(self, data_provider, growth_rate, depth,
                  first_output_features, total_blocks, keep_prob,
                  weight_decay, nesterov_momentum, model_type, dataset,
-                 should_save_logs, should_save_model):
+                 should_save_logs, should_save_model, renew_logs_saves=False,
+                 **kwargs):
         """
         Class to implement networks from this paper
         https://arxiv.org/pdf/1611.05552.pdf
@@ -34,6 +34,8 @@ class DenseNet:
             dataset: `str`, dataset name
             should_save_logs: `bool`, should logs be saved or not
             should_save_model: `bool`, should model be saved or not
+            renew_logs_saves: `bool`, should previous logs and saves for
+                current model be removed
         """
         self.data_provider = data_provider
         self.data_shape = data_provider.data_shape
@@ -42,7 +44,7 @@ class DenseNet:
         self.growth_rate = growth_rate
         self.first_output_features = first_output_features
         self.total_blocks = total_blocks
-        self.layers_per_block = (depth - 4) // total_blocks
+        self.layers_per_block = (depth - (total_blocks + 1)) // total_blocks
         self.keep_prob = keep_prob
         self.weight_decay = weight_decay
         self.nesterov_momentum = nesterov_momentum
@@ -50,8 +52,11 @@ class DenseNet:
         self.dataset_name = dataset
         self.should_save_logs = should_save_logs
         self.should_save_model = should_save_model
+        self.renew_logs_saves = renew_logs_saves
         self.batches_step = 0
 
+        print("Build model with %d blocks, %d layers each." % (
+            self.total_blocks, self.layers_per_block))
         self._define_inputs()
         self._build_graph()
         self._initialize_session()
@@ -72,17 +77,27 @@ class DenseNet:
 
     @property
     def save_path(self):
-        save_path = 'saves/%s' % self.model_identifier
-        shutil.rmtree(save_path, ignore_errors=True)
-        os.makedirs(save_path, exist_ok=True)
-        save_path = os.path.join(save_path, 'model.chkpt')
+        try:
+            save_path = self._save_path
+        except AttributeError:
+            save_path = 'saves/%s' % self.model_identifier
+            if self.renew_logs_saves:
+                shutil.rmtree(save_path, ignore_errors=True)
+            os.makedirs(save_path, exist_ok=True)
+            save_path = os.path.join(save_path, 'model.chkpt')
+            self._save_path = save_path
         return save_path
 
     @property
     def logs_path(self):
-        logs_path = 'logs/%s' % self.model_identifier
-        shutil.rmtree(logs_path, ignore_errors=True)
-        os.makedirs(logs_path, exist_ok=True)
+        try:
+            logs_path = self._logs_path
+        except AttributeError:
+            logs_path = 'logs/%s' % self.model_identifier
+            if self.renew_logs_saves:
+                shutil.rmtree(logs_path, ignore_errors=True)
+            os.makedirs(logs_path, exist_ok=True)
+            self._logs_path = logs_path
         return logs_path
 
     @property
@@ -94,12 +109,19 @@ class DenseNet:
         self.saver.save(self.sess, self.save_path, global_step=global_step)
 
     def load_model(self):
+        # to be sure that save will not be removed
+        self.renew_logs_saves = False
+        if not os.path.exists(self.save_path):
+            raise IOError("Failed to find saves for model "
+                          "with save path: %s" % self.save_path)
         self.saver.restore(self.sess, self.save_path)
+        print("Successfully load model from save path: %s" % self.save_path)
 
     def log_loss_accuracy(self, loss, accuracy, epoch, prefix,
                           should_print=True):
         if should_print:
-            print("mean loss: %f, mean accuracy: %f" % (loss, accuracy))
+            print("mean cross_entropy: %f, mean accuracy: %f" % (
+                loss, accuracy))
         summary = tf.Summary(value=[
             tf.Summary.Value(
                 tag='loss_%s' % prefix, simple_value=float(loss)),
@@ -123,6 +145,7 @@ class DenseNet:
             tf.float32,
             shape=[],
             name='learning_rate')
+        self.is_training = tf.placeholder(tf.bool, shape=[])
 
     def composite_function(self, _input, out_features, kernel_size=3):
         """Function from paper H_l that performs:
@@ -213,17 +236,15 @@ class DenseNet:
         return output
 
     def batch_norm(self, _input):
-        is_training = tflearn.get_training_mode()
         output = tf.contrib.layers.batch_norm(
-            _input, scale=True, is_training=is_training,
+            _input, scale=True, is_training=self.is_training,
             updates_collections=None)
         return output
 
     def dropout(self, _input):
-        is_training = tflearn.get_training_mode()
         if self.keep_prob < 1:
             output = tf.cond(
-                is_training,
+                self.is_training,
                 lambda: tf.nn.dropout(_input, self.keep_prob),
                 lambda: _input
             )
@@ -271,9 +292,9 @@ class DenseNet:
         prediction = tf.nn.softmax(logits)
 
         # Losses
-        cross_enthropy = -tf.reduce_mean(
+        cross_entropy = -tf.reduce_mean(
             self.labels * tf.log(prediction + 1e-12))
-        self.loss = cross_enthropy
+        self.cross_entropy = cross_entropy
         l2_loss = tf.add_n(
             [tf.nn.l2_loss(var) for var in tf.trainable_variables()])
 
@@ -281,12 +302,12 @@ class DenseNet:
         optimizer = tf.train.MomentumOptimizer(
             self.learning_rate, self.nesterov_momentum, use_nesterov=True)
         self.train_step = optimizer.minimize(
-           cross_enthropy + l2_loss * self.weight_decay)
+            cross_entropy + l2_loss * self.weight_decay)
 
         correct_prediction = tf.equal(
             tf.argmax(prediction, 1),
             tf.argmax(self.labels, 1))
-        self.accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+        self.accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
     def train_all_epochs(self, train_params):
         n_epochs = train_params['n_epochs']
@@ -315,7 +336,7 @@ class DenseNet:
                     self.log_loss_accuracy(loss, acc, epoch, prefix='valid')
 
             time_per_epoch = time.time() - start_time
-            seconds_left = int((n_epochs - epoch - 2) * time_per_epoch)
+            seconds_left = int((n_epochs - epoch) * time_per_epoch)
             print("Time per epoch: %s, Est. complete in: %s" % (
                 str(timedelta(seconds=time_per_epoch)),
                 str(timedelta(seconds=seconds_left))))
@@ -324,7 +345,6 @@ class DenseNet:
                 self.save_model()
 
     def train_one_epoch(self, data, batch_size, learning_rate):
-        tflearn.is_training(True, session=self.sess)
         num_examples = data.num_examples
         total_loss = []
         total_accuracy = []
@@ -334,26 +354,24 @@ class DenseNet:
             feed_dict = {
                 self.images: images,
                 self.labels: labels,
-                self.learning_rate: learning_rate
+                self.learning_rate: learning_rate,
+                self.is_training: True,
             }
-            fetches = [self.train_step, self.loss, self.accuracy]
+            fetches = [self.train_step, self.cross_entropy, self.accuracy]
             result = self.sess.run(fetches, feed_dict=feed_dict)
             _, loss, accuracy = result
             total_loss.append(loss)
             total_accuracy.append(accuracy)
-            if i % 100 == 0:
-                print("Batch %d, loss: %f, accuracy: %f" % (i, loss, accuracy))
             if self.should_save_logs:
                 self.batches_step += 1
                 self.log_loss_accuracy(
                     loss, accuracy, self.batches_step, prefix='per_batch',
                     should_print=False)
         mean_loss = np.mean(total_loss)
-        mean_accuracy = np.mean(accuracy)
+        mean_accuracy = np.mean(total_accuracy)
         return mean_loss, mean_accuracy
 
     def test(self, data, batch_size):
-        tflearn.is_training(False, session=self.sess)
         num_examples = data.num_examples
         total_loss = []
         total_accuracy = []
@@ -361,12 +379,13 @@ class DenseNet:
             batch = data.next_batch(batch_size)
             feed_dict = {
                 self.images: batch[0],
-                self.labels: batch[1]
+                self.labels: batch[1],
+                self.is_training: False,
             }
-            fetches = [self.loss, self.accuracy]
+            fetches = [self.cross_entropy, self.accuracy]
             loss, accuracy = self.sess.run(fetches, feed_dict=feed_dict)
             total_loss.append(loss)
             total_accuracy.append(accuracy)
         mean_loss = np.mean(total_loss)
-        mean_accuracy = np.mean(accuracy)
+        mean_accuracy = np.mean(total_accuracy)
         return mean_loss, mean_accuracy

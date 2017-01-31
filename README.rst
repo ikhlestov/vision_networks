@@ -43,6 +43,5 @@ Dependencies
 
 - Model was tested with Python 3.4.3+ and Python 3.5.2 with and without CUDA.
 - Model should work as expected with TensorFlow >= 0.10.
-- Require `tflearn <http://tflearn.org/>`__ for some minor cases.
 
 Repo supported with requirements file - so the easiest way to install all just run ``pip install -r requirements.txt``
