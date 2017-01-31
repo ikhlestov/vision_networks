@@ -21,7 +21,7 @@ Citation:
 
 What should be done
 -------------------
-In future I hope made such improvements:
+In future I hope make such improvements:
 
 - Provide data provider for SVHN dataset
 - Add bottleneck layers, so implement DenseNet-BC
