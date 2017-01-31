@@ -11,8 +11,8 @@ train_params_cifar = {
     'reduce_lr_epoch_2': 225,  # epochs * 0.75
     'validation_set': True,
     'validation_split': None,  # None or float
-    'shuffle': 'once_prior_train',  # None, once_prior_train, every_epoch
-    'normalization': 'divide_256',  # None, divide_256, divide_255, by_channels
+    'shuffle': 'every_epoch',  # None, once_prior_train, every_epoch
+    'normalization': 'by_channels',  # None, divide_256, divide_255, by_channels
 }
 
 train_params_svhn = {
@@ -33,6 +33,12 @@ def get_train_params_by_name(name):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--train', action='store_true',
+        help='Train the model')
+    parser.add_argument(
+        '--test', action='store_true',
+        help='Test model for required dataset if exists')
     parser.add_argument(
         '--model_type', '-m', type=str, choices=['DenseNet', 'DenseNet-BC'],
         default='DenseNet',
@@ -69,6 +75,7 @@ if __name__ == '__main__':
         'total_blocks': 3,
         'should_save_logs': True,
         'should_save_model': True,
+        'renew_logs_saves': True,
     }
     default_params.update(vars(args))
 
@@ -81,12 +88,21 @@ if __name__ == '__main__':
     for k, v in train_params.items():
         print("\t%s: %s" % (k, v))
 
+    if not args.train and not args.test:
+        print("You should train or test your network. Please check params.")
+        exit()
+
     print("Prepare training data...")
     data_provider = get_data_provider_by_name(args.dataset, train_params)
-    print("Data provider train images: ", data_provider.train.num_examples)
-    data_provider.validation = data_provider.test
     print("Initialize the model..")
     model = DenseNet(data_provider=data_provider, **default_params)
-    model.train_all_epochs(train_params)
-    print("Testing...")
-    model.test(data_provider.test, batch_size=200)
+    if args.train:
+        print("Data provider train images: ", data_provider.train.num_examples)
+        model.train_all_epochs(train_params)
+    if args.test:
+        if not args.train:
+            model.load_model()
+        print("Data provider test images: ", data_provider.test.num_examples)
+        print("Testing...")
+        loss, accuracy = model.test(data_provider.test, batch_size=200)
+        print("mean cross_entropy: %f, mean accuracy: %f" % (loss, accuracy))

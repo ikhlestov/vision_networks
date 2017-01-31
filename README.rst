@@ -31,7 +31,8 @@ In future I hope made such improvements:
 
 Training
 --------
-To start train default DenseNet model(L=40, k=12) run ``python run_dense_net.py``.
+To start train default DenseNet model(L=40, k=12) run ``python run_dense_net.py --train``.
+If you want to perform testing after train run ``python run_dense_net.py --test``.
 Some params can be changed from command line, some - inside starting script.
 
 Difference compared to the `original <https://github.com/liuzhuang13/DenseNet>`__ implementation
