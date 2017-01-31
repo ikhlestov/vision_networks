@@ -281,7 +281,7 @@ class DenseNet:
         optimizer = tf.train.MomentumOptimizer(
             self.learning_rate, self.nesterov_momentum, use_nesterov=True)
         self.train_step = optimizer.minimize(
-            cross_enthropy + l2_loss * self.weight_decay)
+           cross_enthropy + l2_loss * self.weight_decay)
 
         correct_prediction = tf.equal(
             tf.argmax(prediction, 1),
@@ -307,7 +307,7 @@ class DenseNet:
             if self.should_save_logs:
                 self.log_loss_accuracy(loss, acc, epoch, prefix='train')
 
-            if train_params.get('validate', False):
+            if train_params.get('validation_set', False):
                 print("Validation...")
                 loss, acc = self.test(
                     self.data_provider.validation, batch_size)

@@ -8,11 +8,11 @@ train_params_cifar = {
     'n_epochs': 300,
     'initial_learning_rate': 0.1,
     'reduce_lr_epoch_1': 150,  # epochs * 0.5
-    'reduce_lr_epoch_2': 250,  # epochs * 0.75
-    'validate': True,
-    'validation_split': 0.1,
-    'shuffle': True,
-    'normalize_data': True,
+    'reduce_lr_epoch_2': 225,  # epochs * 0.75
+    'validation_set': True,
+    'validation_split': None,  # None or float
+    'shuffle': 'once_prior_train',  # None, once_prior_train, every_epoch
+    'normalization': 'divide_256',  # None, divide_256, divide_255, by_channels
 }
 
 train_params_svhn = {
@@ -71,16 +71,22 @@ if __name__ == '__main__':
         'should_save_model': True,
     }
     default_params.update(vars(args))
-    print("Params:")
-    for k, v in default_params.items():
-        print("\t%s: %s" % (k, v))
 
     # another params dataset/architecture related
     train_params = get_train_params_by_name(args.dataset)
-    print("Prepare training data")
+    print("Params:")
+    for k, v in default_params.items():
+        print("\t%s: %s" % (k, v))
+    print("Train params:")
+    for k, v in train_params.items():
+        print("\t%s: %s" % (k, v))
+
+    print("Prepare training data...")
     data_provider = get_data_provider_by_name(args.dataset, train_params)
-    print("Initialize the model")
+    print("Data provider train images: ", data_provider.train.num_examples)
+    data_provider.validation = data_provider.test
+    print("Initialize the model..")
     model = DenseNet(data_provider=data_provider, **default_params)
     model.train_all_epochs(train_params)
     print("Testing...")
-    model.test(data_provider.test, train_params['batch_size'])
+    model.test(data_provider.test, batch_size=200)
