@@ -38,7 +38,9 @@ if __name__ == '__main__':
         help='Train the model')
     parser.add_argument(
         '--test', action='store_true',
-        help='Test model for required dataset if exists')
+        help='Test model for required dataset if pretrained model exists.'
+             'If provided together with `--train` flag testing will be'
+             'performed right after training.')
     parser.add_argument(
         '--model_type', '-m', type=str, choices=['DenseNet', 'DenseNet-BC'],
         default='DenseNet',
