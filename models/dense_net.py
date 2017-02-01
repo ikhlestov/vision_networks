@@ -43,6 +43,7 @@ class DenseNet:
         self.depth = depth
         self.growth_rate = growth_rate
         # how many features will be received after first convolution
+        # value the same as in the original Torch code
         self.first_output_features = growth_rate * 2
         self.total_blocks = total_blocks
         self.layers_per_block = (depth - (total_blocks + 1)) // total_blocks

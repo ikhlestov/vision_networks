@@ -57,35 +57,61 @@ if __name__ == '__main__':
         choices=['C10', 'C10+', 'C100', 'C100+', 'SVHN'],
         default='C10',
         help='What dataset should be used')
+    parser.add_argument(
+        '--total_blocks', '-tb', type=int, default=3, metavar='',
+        help='Total blocks of layers stack (default: %(default)s)')
+    parser.add_argument(
+        '--keep_prob', '-kp', type=float, metavar='',
+        help="Keep probability for dropout.")
+    parser.add_argument(
+        '--weight_decay', '-wd', type=float, default=1e-4, metavar='',
+        help='Weight decay for optimizer (default: %(default)s)')
+    parser.add_argument(
+        '--nesterov_momentum', '-nm', type=float, default=0.9, metavar='',
+        help='Nesterov momentum (default: %(default)s)')
+
+    parser.add_argument(
+        '--logs', dest='should_save_logs', action='store_true',
+        help='Write tensorflow logs')
+    parser.add_argument(
+        '--no-logs', dest='should_save_logs', action='store_false',
+        help='Do not write tensorflow logs')
+    parser.set_defaults(should_save_logs=True)
+
+    parser.add_argument(
+        '--saves', dest='should_save_model', action='store_true',
+        help='Save model during training')
+    parser.add_argument(
+        '--no-saves', dest='should_save_model', action='store_false',
+        help='Do not save model during training')
+    parser.set_defaults(should_save_model=True)
+
+    parser.add_argument(
+        '--renew', dest='renew_logs_saves', action='store_true',
+        help='Erase previous logs/saves if exists.')
+    parser.add_argument(
+        '--not-renew', dest='renew_logs_saves', action='store_false',
+        help='Do not erase previous logs/saves if exists.')
+    parser.set_defaults(renew_logs_saves=True)
+
     args = parser.parse_args()
 
-    # some params used by default and can be changed inside code
-    if args.dataset in ['C10', 'C100', 'SVHN']:
-        keep_prob = 0.8
-    else:
-        keep_prob = 1.0
-
-    default_params = {
-        'weight_decay': 1e-4,
-        'nesterov_momentum': 0.9,
-        'keep_prob': keep_prob,
-        # first output - a little bit larger than growth rate
-        # maybe should be changed for another archs
-        'total_blocks': 3,
-        'should_save_logs': True,
-        'should_save_model': True,
-        'renew_logs_saves': True,
-    }
-    default_params.update(vars(args))
+    if not args.keep_prob:
+        if args.dataset in ['C10', 'C100', 'SVHN']:
+            args.keep_prob = 0.8
+        else:
+            args.keep_prob = 1.0
     if args.model_type == 'DenseNet':
-        default_params['bc_mode'] = False
+        args.bc_mode = False
     elif args.model_type == 'DenseNet-BC':
-        default_params['bc_mode'] = True
+        args.bc_mode = True
 
-    # another params dataset/architecture related
+    model_params = vars(args)
+
+    # some default params dataset/architecture related
     train_params = get_train_params_by_name(args.dataset)
     print("Params:")
-    for k, v in default_params.items():
+    for k, v in model_params.items():
         print("\t%s: %s" % (k, v))
     print("Train params:")
     for k, v in train_params.items():
@@ -98,7 +124,7 @@ if __name__ == '__main__':
     print("Prepare training data...")
     data_provider = get_data_provider_by_name(args.dataset, train_params)
     print("Initialize the model..")
-    model = DenseNet(data_provider=data_provider, **default_params)
+    model = DenseNet(data_provider=data_provider, **model_params)
     if args.train:
         print("Data provider train images: ", data_provider.train.num_examples)
         model.train_all_epochs(train_params)
