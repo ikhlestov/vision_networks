@@ -12,6 +12,7 @@ class DenseNet:
                  total_blocks, keep_prob,
                  weight_decay, nesterov_momentum, model_type, dataset,
                  should_save_logs, should_save_model, renew_logs_saves=False,
+                 bc_mode=False,
                  **kwargs):
         """
         Class to implement networks from this paper
@@ -33,6 +34,8 @@ class DenseNet:
             should_save_model: `bool`, should model be saved or not
             renew_logs_saves: `bool`, should previous logs and saves for
                 current model be removed
+            bc_mode: `bool`, should we use bottleneck layers and features
+                reduction or not.
         """
         self.data_provider = data_provider
         self.data_shape = data_provider.data_shape
@@ -43,6 +46,22 @@ class DenseNet:
         self.first_output_features = growth_rate * 2
         self.total_blocks = total_blocks
         self.layers_per_block = (depth - (total_blocks + 1)) // total_blocks
+        if not bc_mode:
+            self.bc_mode = False
+            # compression rate at the transition layers
+            self.reduction = 1.0
+            print("Build %s model with %d blocks, "
+                  "%d composite layers each." % (
+                      model_type, self.total_blocks, self.layers_per_block))
+        if bc_mode:
+            self.bc_mode = True
+            self.reduction = 0.5
+            self.layers_per_block = self.layers_per_block // 2
+            print("Build %s model with %d blocks, "
+                  "%d bottleneck layers and %d composite layers each." % (
+                      model_type, self.total_blocks, self.layers_per_block,
+                      self.layers_per_block))
+
         self.keep_prob = keep_prob
         self.weight_decay = weight_decay
         self.nesterov_momentum = nesterov_momentum
@@ -53,8 +72,6 @@ class DenseNet:
         self.renew_logs_saves = renew_logs_saves
         self.batches_step = 0
 
-        print("Build model with %d blocks, %d layers each." % (
-            self.total_blocks, self.layers_per_block))
         self._define_inputs()
         self._build_graph()
         self._initialize_session()
@@ -152,15 +169,27 @@ class DenseNet:
         - convolution with required kernel
         - dropout, if required
         """
-        # BN
-        output = self.batch_norm(_input)
-        # ReLU
-        output = tf.nn.relu(output)
-        # convolution
-        output = self.conv2d(
-            output, out_features=out_features, kernel_size=kernel_size)
-        # dropout(in case of training and in case it is no 1.0)
-        output = self.dropout(output)
+        with tf.variable_scope("composite_function"):
+            # BN
+            output = self.batch_norm(_input)
+            # ReLU
+            output = tf.nn.relu(output)
+            # convolution
+            output = self.conv2d(
+                output, out_features=out_features, kernel_size=kernel_size)
+            # dropout(in case of training and in case it is no 1.0)
+            output = self.dropout(output)
+        return output
+
+    def bottleneck(self, _input, out_features):
+        with tf.variable_scope("bottleneck"):
+            output = self.batch_norm(_input)
+            output = tf.nn.relu(output)
+            inter_features = out_features * 4
+            output = self.conv2d(
+                output, out_features=inter_features, kernel_size=1,
+                padding='VALID')
+            output = self.dropout(output)
         return output
 
     def add_internal_layer(self, _input, growth_rate):
@@ -168,8 +197,13 @@ class DenseNet:
         input with output from composite function.
         """
         # call composite function with 3x3 kernel
-        comp_out = self.composite_function(
-            _input, out_features=growth_rate, kernel_size=3)
+        if not self.bc_mode:
+            comp_out = self.composite_function(
+                _input, out_features=growth_rate, kernel_size=3)
+        elif self.bc_mode:
+            bottleneck_out = self.bottleneck(_input, out_features=growth_rate)
+            comp_out = self.composite_function(
+                bottleneck_out, out_features=growth_rate, kernel_size=3)
         # concatenate _input with out from composite function
         output = tf.concat(3, (_input, comp_out))
         return output
@@ -187,7 +221,7 @@ class DenseNet:
         pooling
         """
         # call composite function with 1x1 kernel
-        out_features = int(_input.get_shape()[-1])
+        out_features = int(int(_input.get_shape()[-1]) * self.reduction)
         output = self.composite_function(
             _input, out_features=out_features, kernel_size=1)
         # run average pooling

@@ -77,6 +77,10 @@ if __name__ == '__main__':
         'renew_logs_saves': True,
     }
     default_params.update(vars(args))
+    if args.model_type == 'DenseNet':
+        default_params['bc_mode'] = False
+    elif args.model_type == 'DenseNet-BC':
+        default_params['bc_mode'] = True
 
     # another params dataset/architecture related
     train_params = get_train_params_by_name(args.dataset)
