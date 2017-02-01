@@ -71,7 +71,6 @@ if __name__ == '__main__':
         'keep_prob': keep_prob,
         # first output - a little bit larger than growth rate
         # maybe should be changed for another archs
-        'first_output_features': int(args.growth_rate * 1.35),
         'total_blocks': 3,
         'should_save_logs': True,
         'should_save_model': True,

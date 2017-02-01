@@ -9,7 +9,7 @@ import tensorflow as tf
 
 class DenseNet:
     def __init__(self, data_provider, growth_rate, depth,
-                 first_output_features, total_blocks, keep_prob,
+                 total_blocks, keep_prob,
                  weight_decay, nesterov_momentum, model_type, dataset,
                  should_save_logs, should_save_model, renew_logs_saves=False,
                  **kwargs):
@@ -21,9 +21,6 @@ class DenseNet:
             data_provider: Class, that have all required data sets
             growth_rate: `int`, variable from paper
             depth: `int`, variable from paper
-            first_output_features: `int`, how many features will be received
-                after first convolution. Should be by some way larger than
-                growth_rate
             total_blocks: `int`, paper value == 3
             keep_prob: `float`, keep probability for dropout. If keep_prob = 1
                 dropout will be disables
@@ -42,7 +39,8 @@ class DenseNet:
         self.n_classes = data_provider.n_classes
         self.depth = depth
         self.growth_rate = growth_rate
-        self.first_output_features = first_output_features
+        # how many features will be received after first convolution
+        self.first_output_features = growth_rate * 2
         self.total_blocks = total_blocks
         self.layers_per_block = (depth - (total_blocks + 1)) // total_blocks
         self.keep_prob = keep_prob
