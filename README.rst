@@ -23,11 +23,8 @@ What should be done
 -------------------
 In future I hope make such improvements:
 
-- Provide data provider for SVHN dataset
-- Add bottleneck layers, so implement DenseNet-BC
-- Provide data provider for ImageNet
-- Implement ResNet with dense connections(DenseImageNet)
-- Convert data providers to tensorflow native readers
+- Add data provider for SVHN dataset
+- Add data provider and model for ImageNet
 
 Training
 --------
