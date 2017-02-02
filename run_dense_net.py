@@ -13,7 +13,6 @@ train_params_cifar = {
     'validation_split': None,  # None or float
     'shuffle': 'every_epoch',  # None, once_prior_train, every_epoch
     'normalization': 'by_chanels',  # None, divide_256, divide_255, by_chanels
-    'reduction': 0.5,  # reduction Theta at transition layer for DenseNets-BC
 }
 
 train_params_svhn = {
@@ -22,6 +21,10 @@ train_params_svhn = {
     'initial_learning_rate': 0.1,
     'reduce_lr_epoch_1': 20,
     'reduce_lr_epoch_2': 30,
+    'validation_set': True,
+    'validation_split': None,  # you may set it 6000 as in the paper
+    'shuffle': True,  # shuffle dataset every epoch or not
+    'normalization': 'divide_255',
 }
 
 
@@ -72,6 +75,9 @@ if __name__ == '__main__':
     parser.add_argument(
         '--nesterov_momentum', '-nm', type=float, default=0.9, metavar='',
         help='Nesterov momentum (default: %(default)s)')
+    parser.add_argument(
+        '--reduction', '-red', type=float, default=0.5, metavar='',
+        help='reduction Theta at transition layer for DenseNets-BC models')
 
     parser.add_argument(
         '--logs', dest='should_save_logs', action='store_true',
