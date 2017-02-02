@@ -80,12 +80,16 @@ class CifarDataSet(DataSet):
             images, labels = self.shuffle_images_labels(images, labels)
         elif shuffle == 'every_epoch':
             self.shuffle_every_epoch = True
+        else:
+            raise Exception("Unknown type of shuffling")
 
         self.images = images
         self.labels = labels
         self.n_classes = n_classes
         self.augmentation = augmentation
         self.normalization = normalization
+        if not self.augmentation:
+            self.images = self.normalize_images_if_required(images)
         self.start_new_epoch()
 
     def shuffle_images_labels(self, images, labels):
@@ -93,6 +97,18 @@ class CifarDataSet(DataSet):
         shuffled_images = images[rand_indexes]
         shuffled_labels = labels[rand_indexes]
         return shuffled_images, shuffled_labels
+
+    def normalize_images_if_required(self, images):
+        if self.normalization:
+            if self.normalization == 'divide_255':
+                images = images / 255
+            elif self.normalization == 'divide_256':
+                images = images / 256
+            elif self.normalization == 'by_chanels':
+                images = normalize_all_images_by_chanels(images)
+            else:
+                raise Exception("Unknown type of normalization")
+        return images
 
     def start_new_epoch(self):
         self._batch_counter = 0
@@ -103,13 +119,8 @@ class CifarDataSet(DataSet):
             images, labels = self.images, self.labels
         if self.augmentation:
             images = augment_all_images(images, pad=4)
-        if self.normalization:
-            if self.normalization == 'divide_255':
-                images = images / 255
-            elif self.normalization == 'divide_256':
-                images = images / 256
-            elif self.normalization == 'by_chanels':
-                images = normalize_all_images_by_chanels(images)
+            # normalize new images after augmentation
+            images = self.normalize_images_if_required(images)
         self.epoch_images = images
         self.epoch_labels = labels
 
@@ -133,32 +144,33 @@ class CifarDataSet(DataSet):
 class CifarDataProvider(DataProvider):
     """Abstract class for cifar readers"""
 
-    def __init__(self, train_params):
+    def __init__(self, save_path=None, validation_set=None,
+                 validation_split=None, shuffle=None, normalization=None,
+                 one_hot=True, **kwargs):
         """
-        train_params: `dict` of training params. Such args may exists:
-            'validation_set': `bool`.
-            'validation_split': `float` or None. 
+        Args:
+            save_path: `str`
+            validation_set: `bool`.
+            validation_split: `float` or None
                 float: chunk of `train set` will be marked as `validation set`.
                 None: if 'validation set' == True, `validation set` will be
                     copy of `test set`
-            'shuffle': `str` or None
+            shuffle: `str` or None
                 None: no any shuffling
                 once_prior_train: shuffle train data only once prior train
                 every_epoch: shuffle train data prior every epoch
-            'normalization': `str` or None
+            normalization: `str` or None
                 None: no any normalization
                 divide_255: divide all pixels by 255
                 divide_256: divide all pixels by 256
                 by_chanels: substract mean of every chanel and divide each
                     chanel data by it's standart deviation
-            'one_hot': `bool`, return lasels one hot encoded
+            one_hot: `bool`, return lasels one hot encoded
         """
-        self._save_path = train_params.get('save_path', None)
-        self.one_hot = train_params.get('one_hot', True)
-        validation_set = train_params.get('validation_set', None)
-        validation_split = train_params.get('validation_split', None)
-        shuffle = train_params.get('shuffle', None)
-        normalization = train_params.get('normalization', None)
+        self._save_path = save_path
+        self.one_hot = one_hot
+        validation_set = validation_set
+        validation_split = validation_split
         download_data_url(self.data_url, self.save_path)
         train_fnames, test_fnames = self.get_filenames(self.save_path)
 
@@ -187,7 +199,7 @@ class CifarDataProvider(DataProvider):
         images, labels = self.read_cifar(test_fnames)
         self.test = CifarDataSet(
             images=images, labels=labels,
-            shuffle=shuffle, n_classes=self.n_classes,
+            shuffle=None, n_classes=self.n_classes,
             normalization=normalization,
             augmentation=False)
 
@@ -283,3 +295,74 @@ class Cifar10AugmentedDataProvider(Cifar10DataProvider):
 class Cifar100AugmentedDataProvider(Cifar100DataProvider):
     _n_classes = 100
     data_augmentation = True
+
+
+if __name__ == '__main__':
+    # some sanity checks for Cifar data providers
+    import matplotlib.pyplot as plt
+    c10_provider = Cifar10DataProvider(
+        validation_set=True)
+    assert c10_provider._n_classes == 10
+    assert c10_provider.train.labels.shape[-1] == 10
+    assert len(c10_provider.train.labels.shape) == 2
+    assert np.all(c10_provider.validation.images == c10_provider.test.images)
+    assert c10_provider.train.images.shape[0] == 50000
+    assert c10_provider.test.images.shape[0] == 10000
+
+    # test split on validation dataset
+    c10_provider = Cifar10DataProvider(
+        one_hot=False, validation_set=True, validation_split=0.1)
+    assert len(c10_provider.train.labels.shape) == 1
+    assert not np.all(
+        c10_provider.validation.images == c10_provider.test.images)
+    assert c10_provider.train.images.shape[0] == 45000
+    assert c10_provider.validation.images.shape[0] == 5000
+    assert c10_provider.test.images.shape[0] == 10000
+
+    # test shuffling
+    c10_provider_not_shuffled = Cifar10DataProvider(shuffle=None)
+    c10_provider_shuffled = Cifar10DataProvider(shuffle='once_prior_train')
+    assert not np.all(
+        c10_provider_not_shuffled.train.images != c10_provider_shuffled.train.images)
+    assert np.all(
+        c10_provider_not_shuffled.test.images == c10_provider_shuffled.test.images)
+
+    # plot some CIFAR10 images with classes
+    def plot_images_labels(images, labels, axes, main_label):
+        classes = ['airplane', 'automobile', 'bird', 'cat', 'deer',
+                   'dog', 'frog', 'horse', 'ship', 'truck']
+        plt.text(0, 1.5, main_label, ha='center', va='top',
+                 transform=axes[len(axes) // 2].transAxes)
+        for image, label, axe in zip(images, labels, axes):
+            axe.imshow(image)
+            axe.set_title(classes[np.argmax(label)])
+            axe.set_axis_off()
+
+    n_plots = 10
+    fig, axes = plt.subplots(nrows=4, ncols=n_plots)
+    plot_images_labels(
+        c10_provider_not_shuffled.train.images[:n_plots],
+        c10_provider_not_shuffled.train.labels[:n_plots],
+        axes[0],
+        'Original dataset')
+    dataset = Cifar10DataProvider(normalization='divide_256')
+    plot_images_labels(
+        dataset.train.images[:n_plots],
+        dataset.train.labels[:n_plots],
+        axes[1],
+        'Original dataset normalized dividing 256')
+    dataset = Cifar10DataProvider(normalization='by_chanels')
+    plot_images_labels(
+        dataset.train.images[:n_plots],
+        dataset.train.labels[:n_plots],
+        axes[2],
+        'Original dataset normalized by mean/std at every channel')
+    plot_images_labels(
+        c10_provider_shuffled.train.images[:n_plots],
+        c10_provider_shuffled.train.labels[:n_plots],
+        axes[3],
+        'Shuffled dataset')
+    plt.show()
+
+    c100_provider = Cifar100DataProvider()
+    assert c100_provider.train.labels.shape[-1] == 100

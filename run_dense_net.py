@@ -12,7 +12,7 @@ train_params_cifar = {
     'validation_set': True,
     'validation_split': None,  # None or float
     'shuffle': 'every_epoch',  # None, once_prior_train, every_epoch
-    'normalization': 'by_channels',  # None, divide_256, divide_255, by_channels
+    'normalization': 'by_chanels',  # None, divide_256, divide_255, by_chanels
 }
 
 train_params_svhn = {
@@ -110,6 +110,10 @@ if __name__ == '__main__':
 
     model_params = vars(args)
 
+    if not args.train and not args.test:
+        print("You should train or test your network. Please check params.")
+        exit()
+
     # some default params dataset/architecture related
     train_params = get_train_params_by_name(args.dataset)
     print("Params:")
@@ -118,10 +122,6 @@ if __name__ == '__main__':
     print("Train params:")
     for k, v in train_params.items():
         print("\t%s: %s" % (k, v))
-
-    if not args.train and not args.test:
-        print("You should train or test your network. Please check params.")
-        exit()
 
     print("Prepare training data...")
     data_provider = get_data_provider_by_name(args.dataset, train_params)
