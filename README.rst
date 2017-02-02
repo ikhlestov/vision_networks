@@ -15,8 +15,9 @@ Each model can be tested on such datasets:
 - Cifar10+ (with data augmentation)
 - Cifar100
 - Cifar100+ (with data augmentation)
+- SVHN
 
- A number of layers, blocks, growth rate and other training params may be changed trough shell or inside the source code.
+A number of layers, blocks, growth rate and other training params may be changed trough shell or inside the source code.
 
 Example run:
 

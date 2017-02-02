@@ -5,7 +5,7 @@ import random
 import numpy as np
 
 
-from .base_provider import DataSet, DataProvider
+from .base_provider import ImagesDataSet, DataProvider
 from .downloader import download_data_url
 
 
@@ -38,23 +38,7 @@ def augment_all_images(initial_images, pad):
     return new_images
 
 
-def normalize_image_by_chanel(image):
-    new_image = np.zeros(image.shape)
-    for chanel in range(3):
-        mean = np.mean(image[:, :, chanel])
-        std = np.std(image[:, :, chanel])
-        new_image[:, :, chanel] = (image[:, :, chanel] - mean) / std
-    return new_image
-
-
-def normalize_all_images_by_chanels(initial_images):
-    new_images = np.zeros(initial_images.shape)
-    for i in range(initial_images.shape[0]):
-        new_images[i] = normalize_image_by_chanel(initial_images[i])
-    return new_images
-
-
-class CifarDataSet(DataSet):
+class CifarDataSet(ImagesDataSet):
     def __init__(self, images, labels, n_classes, shuffle, normalization,
                  augmentation):
         """
@@ -72,12 +56,13 @@ class CifarDataSet(DataSet):
                 divide_256: divide all pixels by 256
                 by_chanels: substract mean of every chanel and divide each
                     chanel data by it's standart deviation
+            augmentation: `bool`
         """
         if shuffle is None:
             self.shuffle_every_epoch = False
         elif shuffle == 'once_prior_train':
             self.shuffle_every_epoch = False
-            images, labels = self.shuffle_images_labels(images, labels)
+            images, labels = self.shuffle_images_and_labels(images, labels)
         elif shuffle == 'every_epoch':
             self.shuffle_every_epoch = True
         else:
@@ -89,38 +74,22 @@ class CifarDataSet(DataSet):
         self.augmentation = augmentation
         self.normalization = normalization
         if not self.augmentation:
-            self.images = self.normalize_images_if_required(images)
+            if self.normalization is not None:
+                self.images = self.normalize_images(images, self.normalization)
         self.start_new_epoch()
-
-    def shuffle_images_labels(self, images, labels):
-        rand_indexes = np.random.permutation(images.shape[0])
-        shuffled_images = images[rand_indexes]
-        shuffled_labels = labels[rand_indexes]
-        return shuffled_images, shuffled_labels
-
-    def normalize_images_if_required(self, images):
-        if self.normalization:
-            if self.normalization == 'divide_255':
-                images = images / 255
-            elif self.normalization == 'divide_256':
-                images = images / 256
-            elif self.normalization == 'by_chanels':
-                images = normalize_all_images_by_chanels(images)
-            else:
-                raise Exception("Unknown type of normalization")
-        return images
 
     def start_new_epoch(self):
         self._batch_counter = 0
         if self.shuffle_every_epoch:
-            images, labels = self.shuffle_images_labels(
+            images, labels = self.shuffle_images_and_labels(
                 self.images, self.labels)
         else:
             images, labels = self.images, self.labels
         if self.augmentation:
             images = augment_all_images(images, pad=4)
-            # normalize new images after augmentation
-            images = self.normalize_images_if_required(images)
+            if self.normalization:
+                # normalize new images after augmentation
+                images = self.normalize_images(images, self.normalization)
         self.epoch_images = images
         self.epoch_labels = labels
 
@@ -169,8 +138,6 @@ class CifarDataProvider(DataProvider):
         """
         self._save_path = save_path
         self.one_hot = one_hot
-        validation_set = validation_set
-        validation_split = validation_split
         download_data_url(self.data_url, self.save_path)
         train_fnames, test_fnames = self.get_filenames(self.save_path)
 
@@ -226,14 +193,6 @@ class CifarDataProvider(DataProvider):
     @property
     def n_classes(self):
         return self._n_classes
-
-    def labels_to_one_hot(self, labels):
-        new_labels = np.zeros((labels.shape[0], self.n_classes))
-        new_labels[range(labels.shape[0]), labels] = np.ones(labels.shape)
-        return new_labels
-
-    def labels_from_one_hot(self, labels):
-        return np.argmax(labels, axis=1)
 
     def get_filenames(self, save_path):
         """Return two lists of train and test filenames for dataset"""
