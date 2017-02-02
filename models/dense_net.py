@@ -11,7 +11,9 @@ class DenseNet:
     def __init__(self, data_provider, growth_rate, depth,
                  total_blocks, keep_prob,
                  weight_decay, nesterov_momentum, model_type, dataset,
-                 should_save_logs, should_save_model, renew_logs_saves=False,
+                 should_save_logs, should_save_model,
+                 renew_logs_saves=False,
+                 reduction=None,
                  bc_mode=False,
                  **kwargs):
         """
@@ -34,6 +36,9 @@ class DenseNet:
             should_save_model: `bool`, should model be saved or not
             renew_logs_saves: `bool`, should previous logs and saves for
                 current model be removed
+            reduction: `float`, reduction Theta at transition layer for
+                DenseNets with bottleneck layers. See paragraph 'Compression'
+                https://arxiv.org/pdf/1608.06993v3.pdf#4
             bc_mode: `bool`, should we use bottleneck layers and features
                 reduction or not.
         """
@@ -56,7 +61,7 @@ class DenseNet:
                       model_type, self.total_blocks, self.layers_per_block))
         if bc_mode:
             self.bc_mode = True
-            self.reduction = 0.5
+            self.reduction = reduction
             self.layers_per_block = self.layers_per_block // 2
             print("Build %s model with %d blocks, "
                   "%d bottleneck layers and %d composite layers each." % (

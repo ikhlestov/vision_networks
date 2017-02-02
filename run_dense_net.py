@@ -13,6 +13,7 @@ train_params_cifar = {
     'validation_split': None,  # None or float
     'shuffle': 'every_epoch',  # None, once_prior_train, every_epoch
     'normalization': 'by_chanels',  # None, divide_256, divide_255, by_chanels
+    'reduction': 0.5,  # reduction Theta at transition layer for DenseNets-BC
 }
 
 train_params_svhn = {
