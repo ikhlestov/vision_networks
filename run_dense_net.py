@@ -112,6 +112,7 @@ if __name__ == '__main__':
             args.keep_prob = 1.0
     if args.model_type == 'DenseNet':
         args.bc_mode = False
+        args.reduction = 1.0
     elif args.model_type == 'DenseNet-BC':
         args.bc_mode = True
 
