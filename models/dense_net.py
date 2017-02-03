@@ -52,21 +52,20 @@ class DenseNet:
         self.first_output_features = growth_rate * 2
         self.total_blocks = total_blocks
         self.layers_per_block = (depth - (total_blocks + 1)) // total_blocks
+        self.bc_mode = bc_mode
+        # compression rate at the transition layers
+        self.reduction = reduction
         if not bc_mode:
-            self.bc_mode = False
-            # compression rate at the transition layers
-            self.reduction = 1.0
             print("Build %s model with %d blocks, "
                   "%d composite layers each." % (
                       model_type, self.total_blocks, self.layers_per_block))
         if bc_mode:
-            self.bc_mode = True
-            self.reduction = reduction
             self.layers_per_block = self.layers_per_block // 2
             print("Build %s model with %d blocks, "
                   "%d bottleneck layers and %d composite layers each." % (
                       model_type, self.total_blocks, self.layers_per_block,
                       self.layers_per_block))
+        print("Reduction at transition layers: %.1f" % self.reduction)
 
         self.keep_prob = keep_prob
         self.weight_decay = weight_decay
@@ -81,6 +80,7 @@ class DenseNet:
         self._define_inputs()
         self._build_graph()
         self._initialize_session()
+        self._count_trainable_params()
 
     def _initialize_session(self):
         """Initialize session, variables, saver"""
@@ -95,6 +95,16 @@ class DenseNet:
             self.sess.run(tf.global_variables_initializer())
         self.saver = tf.train.Saver()
         self.summary_writer = tf.train.SummaryWriter(self.logs_path)
+
+    def _count_trainable_params(self):
+        total_parameters = 0
+        for variable in tf.trainable_variables():
+            shape = variable.get_shape()
+            variable_parametes = 1
+            for dim in shape:
+                variable_parametes *= dim.value
+            total_parameters += variable_parametes
+        print("Total training params: %.1fM" % (total_parameters / 1e6))
 
     @property
     def save_path(self):
@@ -353,6 +363,7 @@ class DenseNet:
         batch_size = train_params['batch_size']
         reduce_lr_epoch_1 = train_params['reduce_lr_epoch_1']
         reduce_lr_epoch_2 = train_params['reduce_lr_epoch_2']
+        total_start_time = time.time()
         for epoch in range(1, n_epochs + 1):
             print("\n", '-' * 30, "Train epoch: %d" % epoch, '-' * 30, '\n')
             start_time = time.time()
@@ -381,6 +392,10 @@ class DenseNet:
 
             if self.should_save_model:
                 self.save_model()
+
+        total_training_time = time.time() - total_start_time
+        print("\nTotal training time: %s" % str(timedelta(
+            seconds=total_training_time)))
 
     def train_one_epoch(self, data, batch_size, learning_rate):
         num_examples = data.num_examples
