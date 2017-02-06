@@ -340,8 +340,8 @@ class DenseNet:
         prediction = tf.nn.softmax(logits)
 
         # Losses
-        cross_entropy = -tf.reduce_mean(
-            self.labels * tf.log(prediction + 1e-12))
+        cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
+            logits=logits, labels=self.labels))
         self.cross_entropy = cross_entropy
         l2_loss = tf.add_n(
             [tf.nn.l2_loss(var) for var in tf.trainable_variables()])
