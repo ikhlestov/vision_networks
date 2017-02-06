@@ -259,6 +259,18 @@ class Cifar100AugmentedDataProvider(Cifar100DataProvider):
 if __name__ == '__main__':
     # some sanity checks for Cifar data providers
     import matplotlib.pyplot as plt
+
+    # plot some CIFAR10 images with classes
+    def plot_images_labels(images, labels, axes, main_label, classes):
+        plt.text(0, 1.5, main_label, ha='center', va='top',
+                 transform=axes[len(axes) // 2].transAxes)
+        for image, label, axe in zip(images, labels, axes):
+            axe.imshow(image)
+            axe.set_title(classes[np.argmax(label)])
+            axe.set_axis_off()
+
+    cifar_10_idx_to_class = ['airplane', 'automobile', 'bird', 'cat', 'deer',
+                             'dog', 'frog', 'horse', 'ship', 'truck']
     c10_provider = Cifar10DataProvider(
         validation_set=True)
     assert c10_provider._n_classes == 10
@@ -286,42 +298,59 @@ if __name__ == '__main__':
     assert np.all(
         c10_provider_not_shuffled.test.images == c10_provider_shuffled.test.images)
 
-    # plot some CIFAR10 images with classes
-    def plot_images_labels(images, labels, axes, main_label):
-        classes = ['airplane', 'automobile', 'bird', 'cat', 'deer',
-                   'dog', 'frog', 'horse', 'ship', 'truck']
-        plt.text(0, 1.5, main_label, ha='center', va='top',
-                 transform=axes[len(axes) // 2].transAxes)
-        for image, label, axe in zip(images, labels, axes):
-            axe.imshow(image)
-            axe.set_title(classes[np.argmax(label)])
-            axe.set_axis_off()
-
     n_plots = 10
     fig, axes = plt.subplots(nrows=4, ncols=n_plots)
     plot_images_labels(
         c10_provider_not_shuffled.train.images[:n_plots],
         c10_provider_not_shuffled.train.labels[:n_plots],
         axes[0],
-        'Original dataset')
+        'Original dataset',
+        cifar_10_idx_to_class)
     dataset = Cifar10DataProvider(normalization='divide_256')
     plot_images_labels(
         dataset.train.images[:n_plots],
         dataset.train.labels[:n_plots],
         axes[1],
-        'Original dataset normalized dividing 256')
+        'Original dataset normalized dividing by 256',
+        cifar_10_idx_to_class)
     dataset = Cifar10DataProvider(normalization='by_chanels')
     plot_images_labels(
         dataset.train.images[:n_plots],
         dataset.train.labels[:n_plots],
         axes[2],
-        'Original dataset normalized by mean/std at every channel')
+        'Original dataset normalized by mean/std at every channel',
+        cifar_10_idx_to_class)
     plot_images_labels(
         c10_provider_shuffled.train.images[:n_plots],
         c10_provider_shuffled.train.labels[:n_plots],
         axes[3],
-        'Shuffled dataset')
+        'Shuffled dataset',
+        cifar_10_idx_to_class)
     plt.show()
 
-    c100_provider = Cifar100DataProvider()
-    assert c100_provider.train.labels.shape[-1] == 100
+    text_classes_file = os.path.join(
+        os.path.dirname(__file__), 'cifar_100_classes.txt')
+    with open('/tmp/cifar100/cifar-100-python/meta', 'rb') as f:
+        cifar_100_meta = pickle.load(f, encoding='bytes')
+    cifar_100_idx_to_class = cifar_100_meta[b'fine_label_names']
+
+    c100_provider_not_shuffled = Cifar100DataProvider(shuffle=None)
+    assert c100_provider_not_shuffled.train.labels.shape[-1] == 100
+    c100_provider_shuffled = Cifar100DataProvider(shuffle='once_prior_train')
+
+    n_plots = 15
+    fig, axes = plt.subplots(nrows=2, ncols=n_plots)
+    plot_images_labels(
+        c100_provider_not_shuffled.train.images[:n_plots],
+        c100_provider_not_shuffled.train.labels[:n_plots],
+        axes[0],
+        'Original dataset',
+        cifar_100_idx_to_class)
+
+    plot_images_labels(
+        c100_provider_shuffled.train.images[:n_plots],
+        c100_provider_shuffled.train.labels[:n_plots],
+        axes[1],
+        'Shuffled dataset',
+        cifar_100_idx_to_class)
+    plt.show()
