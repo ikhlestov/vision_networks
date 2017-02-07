@@ -1,3 +1,4 @@
+import tempfile
 import os
 import pickle
 import random
@@ -176,7 +177,8 @@ class CifarDataProvider(DataProvider):
     @property
     def save_path(self):
         if self._save_path is None:
-            self._save_path = '/tmp/cifar%d' % self.n_classes
+            self._save_path = os.path.join(
+                tempfile.gettempdir(), 'cifar%d' % self.n_classes)
         return self._save_path
 
     @property

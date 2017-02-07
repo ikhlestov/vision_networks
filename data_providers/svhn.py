@@ -1,3 +1,4 @@
+import tempfile
 import os
 import scipy.io
 
@@ -128,7 +129,7 @@ class SVHNDataProvider(DataProvider):
     @property
     def save_path(self):
         if self._save_path is None:
-            self._save_path = '/tmp/svhn'
+            self._save_path = os.path.join(tempfile.gettempdir(), 'svhn')
         return self._save_path
 
     @property
