@@ -13,7 +13,7 @@ class DenseNet:
                  weight_decay, nesterov_momentum, model_type, dataset,
                  should_save_logs, should_save_model,
                  renew_logs_saves=False,
-                 reduction=None,
+                 reduction=1.0,
                  bc_mode=False,
                  **kwargs):
         """
