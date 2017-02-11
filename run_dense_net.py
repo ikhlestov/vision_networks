@@ -96,12 +96,12 @@ if __name__ == '__main__':
     parser.set_defaults(should_save_model=True)
 
     parser.add_argument(
-        '--renew', dest='renew_logs_saves', action='store_true',
-        help='Erase previous logs/saves if exists.')
+        '--renew', dest='renew_logs', action='store_true',
+        help='Erase previous logs for model if exists.')
     parser.add_argument(
-        '--not-renew', dest='renew_logs_saves', action='store_false',
-        help='Do not erase previous logs/saves if exists.')
-    parser.set_defaults(renew_logs_saves=True)
+        '--not-renew', dest='renew_logs', action='store_false',
+        help='Do not erase previous logs for model if exists.')
+    parser.set_defaults(renew_logs=True)
 
     args = parser.parse_args()
 

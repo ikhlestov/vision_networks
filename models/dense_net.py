@@ -12,7 +12,7 @@ class DenseNet:
                  total_blocks, keep_prob,
                  weight_decay, nesterov_momentum, model_type, dataset,
                  should_save_logs, should_save_model,
-                 renew_logs_saves=False,
+                 renew_logs=False,
                  reduction=1.0,
                  bc_mode=False,
                  **kwargs):
@@ -34,8 +34,7 @@ class DenseNet:
             dataset: `str`, dataset name
             should_save_logs: `bool`, should logs be saved or not
             should_save_model: `bool`, should model be saved or not
-            renew_logs_saves: `bool`, should previous logs and saves for
-                current model be removed
+            renew_logs: `bool`, remove previous logs for current model
             reduction: `float`, reduction Theta at transition layer for
                 DenseNets with bottleneck layers. See paragraph 'Compression'
                 https://arxiv.org/pdf/1608.06993v3.pdf#4
@@ -74,7 +73,7 @@ class DenseNet:
         self.dataset_name = dataset
         self.should_save_logs = should_save_logs
         self.should_save_model = should_save_model
-        self.renew_logs_saves = renew_logs_saves
+        self.renew_logs = renew_logs
         self.batches_step = 0
 
         self._define_inputs()
@@ -112,8 +111,6 @@ class DenseNet:
             save_path = self._save_path
         except AttributeError:
             save_path = 'saves/%s' % self.model_identifier
-            if self.renew_logs_saves:
-                shutil.rmtree(save_path, ignore_errors=True)
             os.makedirs(save_path, exist_ok=True)
             save_path = os.path.join(save_path, 'model.chkpt')
             self._save_path = save_path
@@ -125,7 +122,7 @@ class DenseNet:
             logs_path = self._logs_path
         except AttributeError:
             logs_path = 'logs/%s' % self.model_identifier
-            if self.renew_logs_saves:
+            if self.renew_logs:
                 shutil.rmtree(logs_path, ignore_errors=True)
             os.makedirs(logs_path, exist_ok=True)
             self._logs_path = logs_path
@@ -140,11 +137,11 @@ class DenseNet:
         self.saver.save(self.sess, self.save_path, global_step=global_step)
 
     def load_model(self):
-        # to be sure that save will not be removed
-        self.renew_logs_saves = False
-        if not os.path.exists(self.save_path):
-            raise IOError("Failed to find saves for model "
-                          "with save path: %s" % self.save_path)
+        try:
+            self.saver.restore(self.sess, self.save_path + 'something')
+        except Exception as e:
+            raise IOError("Failed to to load model "
+                          "from save path: %s" % self.save_path)
         self.saver.restore(self.sess, self.save_path)
         print("Successfully load model from save path: %s" % self.save_path)
 
