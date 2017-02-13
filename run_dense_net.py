@@ -12,7 +12,7 @@ train_params_cifar = {
     'validation_set': True,
     'validation_split': None,  # None or float
     'shuffle': 'every_epoch',  # None, once_prior_train, every_epoch
-    'normalization': 'by_chanels',  # None, divide_256, divide_255, by_chanels
+    'normalization': 'divide_256',  # None, divide_256, divide_255, by_chanels
 }
 
 train_params_svhn = {
@@ -96,10 +96,10 @@ if __name__ == '__main__':
     parser.set_defaults(should_save_model=True)
 
     parser.add_argument(
-        '--renew', dest='renew_logs', action='store_true',
+        '--renew-logs', dest='renew_logs', action='store_true',
         help='Erase previous logs for model if exists.')
     parser.add_argument(
-        '--not-renew', dest='renew_logs', action='store_false',
+        '--not-renew-logs', dest='renew_logs', action='store_false',
         help='Do not erase previous logs for model if exists.')
     parser.set_defaults(renew_logs=True)
 
