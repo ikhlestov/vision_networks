@@ -74,9 +74,7 @@ class CifarDataSet(ImagesDataSet):
         self.n_classes = n_classes
         self.augmentation = augmentation
         self.normalization = normalization
-        if not self.augmentation:
-            if self.normalization is not None:
-                self.images = self.normalize_images(images, self.normalization)
+        self.images = self.normalize_images(images, self.normalization)
         self.start_new_epoch()
 
     def start_new_epoch(self):
@@ -88,9 +86,6 @@ class CifarDataSet(ImagesDataSet):
             images, labels = self.images, self.labels
         if self.augmentation:
             images = augment_all_images(images, pad=4)
-            if self.normalization:
-                # normalize new images after augmentation
-                images = self.normalize_images(images, self.normalization)
         self.epoch_images = images
         self.epoch_labels = labels
 

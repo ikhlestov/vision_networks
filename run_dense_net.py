@@ -12,7 +12,7 @@ train_params_cifar = {
     'validation_set': True,
     'validation_split': None,  # None or float
     'shuffle': 'every_epoch',  # None, once_prior_train, every_epoch
-    'normalization': 'divide_256',  # None, divide_256, divide_255, by_chanels
+    'normalization': 'by_chanels',  # None, divide_256, divide_255, by_chanels
 }
 
 train_params_svhn = {

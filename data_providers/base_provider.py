@@ -36,7 +36,12 @@ class ImagesDataSet(DataSet):
         elif normalization_type == 'divide_256':
             images = images / 256
         elif normalization_type == 'by_chanels':
-            images = self.normalize_all_images_by_chanels(images)
+            images = images.astype('float64')
+            for i in range(3):
+                images_mean = np.mean(images[:, :, :, i])
+                images_std = np.std(images[:, :, :, i])
+                images[:, :, :, i] = (
+                    images[:, :, :, i] - images_mean) / images_std
         else:
             raise Exception("Unknown type of normalization")
         return images
