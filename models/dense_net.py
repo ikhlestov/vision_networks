@@ -7,6 +7,9 @@ import numpy as np
 import tensorflow as tf
 
 
+TF_VERSION = float('.'.join(tf.__version__.split('.')[:2]))
+
+
 class DenseNet:
     def __init__(self, data_provider, growth_rate, depth,
                  total_blocks, keep_prob,
@@ -88,7 +91,7 @@ class DenseNet:
         config.gpu_options.allow_growth = True
         self.sess = tf.Session(config=config)
         tf_ver = int(tf.__version__.split('.')[1])
-        if tf_ver <= 10:
+        if TF_VERSION <= 0.10:
             self.sess.run(tf.initialize_all_variables())
             logswriter = tf.train.SummaryWriter
         else:
@@ -220,7 +223,10 @@ class DenseNet:
             comp_out = self.composite_function(
                 bottleneck_out, out_features=growth_rate, kernel_size=3)
         # concatenate _input with out from composite function
-        output = tf.concat(3, (_input, comp_out))
+        if TF_VERSION >= 1.0:
+            output = tf.concat(axis=3, values=(_input, comp_out))
+        else:
+            output = tf.concat(3, (_input, comp_out))
         return output
 
     def add_block(self, _input, growth_rate, layers_per_block):
