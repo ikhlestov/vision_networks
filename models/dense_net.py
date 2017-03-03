@@ -90,10 +90,12 @@ class DenseNet:
         tf_ver = int(tf.__version__.split('.')[1])
         if tf_ver <= 10:
             self.sess.run(tf.initialize_all_variables())
+            logswriter = tf.train.SummaryWriter
         else:
             self.sess.run(tf.global_variables_initializer())
+            logswriter = tf.summary.FileWriter
         self.saver = tf.train.Saver()
-        self.summary_writer = tf.train.SummaryWriter(self.logs_path)
+        self.summary_writer = logswriter(self.logs_path)
 
     def _count_trainable_params(self):
         total_parameters = 0
