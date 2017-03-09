@@ -66,6 +66,8 @@ Difference compared to the `original <https://github.com/liuzhuang13/DenseNet>`_
 ---------------------------------------------------------
 The existing model should use identical hyperparameters to the original code. If you note some errors - please open an issue.
 
+Also it may be useful to check my blog post `Notes on the implementation DenseNet in tensorflow. <https://medium.com/@illarionkhlestov/notes-on-the-implementation-densenet-in-tensorflow-beeda9dd1504#.55qu3tfqm>`__
+
 Dependencies
 ------------
 
