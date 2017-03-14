@@ -43,18 +43,15 @@ Citation:
 
 Test run
 --------
-For model validation I preformed various test runs with different image normalization.
-At first normalization when we divide full image by 256 works better that normalization by channels.
-But after I while, normalization per channels was fixed - and it seems to perform nearly the same or better than dividing normalization.
 
-====================== ====== ====== ===== ====== ======= ====== ======
-Normalization -->>            by channels  divide by 256  paper results
------------------------------ ------------ -------------- -------------
-Model type             Depth  C10    C100    C10    C100   C10    C100
-====================== ====== ====== ===== ====== ======= ====== ======
-DenseNet(*k* = 12)     40     6.67   27.44   6.51   27.92   7.00  27.55
-DenseNet-BC(*k* = 12)  100    5.54   24.88   --     24.87   5.92  24.15
-====================== ====== ====== ===== ====== ======= ====== ======
+Test results on various datasets. Image normalization per channels was used. Results reported in paper provided in parenthesis. For Cifar+ datasets image normalization was performed before augmentation. This may cause a little bit lower results than reported in paper.
+
+====================== ====== =========== =========== ============== ==============
+Model type             Depth  C10          C10+       C100           C100+
+====================== ====== =========== =========== ============== ==============
+DenseNet(*k* = 12)     40     6.67(7.00)  5.44(5.24)  27.44(27.55)   25.87(24.42)
+DenseNet-BC(*k* = 12)  100    5.54(5.92)  4.87(4.51)  24.88(24.15)   22.85(22.27)
+====================== ====== =========== =========== ============== ==============
 
 Approximate training time for models on GeForce GTX TITAN X GM200 (12 GB memory):
 
