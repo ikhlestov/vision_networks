@@ -249,7 +249,7 @@ class DenseNet:
         output = self.avg_pool(output, k=2)
         return output
 
-    def trainsition_layer_to_classes(self, _input):
+    def transition_layer_to_classes(self, _input):
         """This is last transition to get probabilities by classes. It perform:
         - batch normalization
         - ReLU nonlinearity
@@ -341,7 +341,7 @@ class DenseNet:
                     output = self.transition_layer(output)
 
         with tf.variable_scope("Transition_to_classes"):
-            logits = self.trainsition_layer_to_classes(output)
+            logits = self.transition_layer_to_classes(output)
         prediction = tf.nn.softmax(logits)
 
         # Losses
