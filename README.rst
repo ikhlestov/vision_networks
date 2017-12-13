@@ -71,5 +71,8 @@ Dependencies
 - Model was tested with Python 3.4.3+ and Python 3.5.2 with and without CUDA.
 - Model should work as expected with TensorFlow >= 0.10. Tensorflow 1.0 support was recently included.
 
-Repo supported with requirements file - so the easiest way to install all just run ``pip install -r requirements.txt``.
+Repo supported with requirements files - so the easiest way to install all just run:
+
+- in case of CPU usage ``pip install -r requirements/cpu.txt``.
+- in case of GPU usage ``pip install -r requirements/gpu.txt``.
 

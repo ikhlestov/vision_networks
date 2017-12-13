@@ -1,0 +1,6 @@
+ipdb
+ipython
+matplotlib
+numpy
+Pillow
+scipy
