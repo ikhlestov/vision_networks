@@ -13,6 +13,9 @@ from .downloader import download_data_url
 def augment_image(image, pad):
     """Perform zero padding, randomly crop image to original size,
     maybe mirror horizontally"""
+    flip = random.getrandbits(1)
+    if flip:
+        image = image[:, ::-1, :]
     init_shape = image.shape
     new_shape = [init_shape[0] + pad * 2,
                  init_shape[1] + pad * 2,
@@ -26,9 +29,6 @@ def augment_image(image, pad):
         init_x: init_x + init_shape[0],
         init_y: init_y + init_shape[1],
         :]
-    flip = random.getrandbits(1)
-    if flip:
-        cropped = cropped[:, ::-1, :]
     return cropped
 
 
