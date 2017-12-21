@@ -143,7 +143,7 @@ class DenseNet:
 
     def load_model(self):
         try:
-            self.saver.restore(self.sess, self.save_path + 'something')
+            self.saver.restore(self.sess, self.save_path)
         except Exception as e:
             raise IOError("Failed to to load model "
                           "from save path: %s" % self.save_path)
