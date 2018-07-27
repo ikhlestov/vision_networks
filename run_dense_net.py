@@ -101,6 +101,15 @@ if __name__ == '__main__':
     parser.add_argument(
         '--not-renew-logs', dest='renew_logs', action='store_false',
         help='Do not erase previous logs for model if exists.')
+    
+    parser.add_argument(
+        '--num_inter_threads', '-inter', type=int, default=1, metavar='',
+        help='number of inter threads for inference / test')
+    parser.add_argument(
+        '--num_intra_threads', '-intra', type=int, default=128, metavar='',
+        help='number of intra threads for inference / test')
+    
+    
     parser.set_defaults(renew_logs=True)
 
     args = parser.parse_args()

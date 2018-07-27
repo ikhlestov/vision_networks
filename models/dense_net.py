@@ -12,7 +12,7 @@ TF_VERSION = float('.'.join(tf.__version__.split('.')[:2]))
 
 class DenseNet:
     def __init__(self, data_provider, growth_rate, depth,
-                 total_blocks, keep_prob,
+                 total_blocks, keep_prob, num_inter_threads, num_intra_threads,
                  weight_decay, nesterov_momentum, model_type, dataset,
                  should_save_logs, should_save_model,
                  renew_logs=False,
@@ -49,6 +49,8 @@ class DenseNet:
         self.n_classes = data_provider.n_classes
         self.depth = depth
         self.growth_rate = growth_rate
+        self.num_inter_threads = num_inter_threads
+        self.num_intra_threads = num_intra_threads
         # how many features will be received after first convolution
         # value the same as in the original Torch code
         self.first_output_features = growth_rate * 2
@@ -87,6 +89,11 @@ class DenseNet:
     def _initialize_session(self):
         """Initialize session, variables, saver"""
         config = tf.ConfigProto()
+
+        # Specify the CPU inter and Intra threads used by MKL
+        config.intra_op_parallelism_threads = self.num_intra_threads
+        config.inter_op_parallelism_threads = self.num_inter_threads
+
         # restrict model GPU memory utilization to min required
         config.gpu_options.allow_growth = True
         self.sess = tf.Session(config=config)
